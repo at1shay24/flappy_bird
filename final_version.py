@@ -4,9 +4,10 @@ import random
 pygame.init()
 
 WIDTH, HEIGHT = 400, 600
-BIRD_X, BIRD_Y = 50, HEIGHT // 2
+BIRD_X = 50
+bird_y = HEIGHT // 2
 BIRD_RADIUS = 15
-g = 0.5  # gravity
+g = 0.5
 JUMP = -10
 PIPE_WIDTH = 70
 PIPE_GAP = 150
@@ -22,20 +23,23 @@ pygame.display.set_caption("Flappy Bird")
 
 bird_y_velocity = 0
 score = 0
-
+high_score = 0
 pipes = []
 
 def create_pipe():
     height = random.randint(100, 400)
-    pipes.append([WIDTH, height])
+    pipes.append([WIDTH, height, False])
 
 def move_pipes():
-    global score
+    global score, PIPE_VEL
     for pipe in pipes:
         pipe[0] += PIPE_VEL
+        if pipe[0] + PIPE_WIDTH < BIRD_X and not pipe[2]:
+            pipe[2] = True
+            score += 1
+            PIPE_VEL -= 0.05
     if pipes and pipes[0][0] < -PIPE_WIDTH:
         pipes.pop(0)
-        score += 1  # Increment score when a pipe passes
 
 def draw_pipes():
     for pipe in pipes:
@@ -43,12 +47,12 @@ def draw_pipes():
         pygame.draw.rect(screen, GREEN, (pipe[0], pipe[1] + PIPE_GAP, PIPE_WIDTH, HEIGHT - pipe[1] - PIPE_GAP))
 
 def check_collision():
-    if BIRD_Y - BIRD_RADIUS <= 0 or BIRD_Y + BIRD_RADIUS >= HEIGHT:
-        return True  # Collision with top or bottom
+    if bird_y - BIRD_RADIUS <= 0 or bird_y + BIRD_RADIUS >= HEIGHT:
+        return True
     for pipe in pipes:
         if pipe[0] < BIRD_X + BIRD_RADIUS < pipe[0] + PIPE_WIDTH:
-            if not (pipe[1] < BIRD_Y - BIRD_RADIUS or BIRD_Y + BIRD_RADIUS < pipe[1] + PIPE_GAP):
-                return True  # Collision with pipe
+            if not (bird_y - BIRD_RADIUS > pipe[1] and bird_y + BIRD_RADIUS < pipe[1] + PIPE_GAP):
+                return True
     return False
 
 clock = pygame.time.Clock()
@@ -56,7 +60,7 @@ running = True
 frame_count = 0
 while running:
     screen.fill(WHITE)
-
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -64,19 +68,19 @@ while running:
             bird_y_velocity = JUMP
 
     bird_y_velocity += g
-    BIRD_Y += bird_y_velocity
+    bird_y += bird_y_velocity
 
     if frame_count % 90 == 0:
         create_pipe()
     move_pipes()
     
     draw_pipes()
-    pygame.draw.circle(screen, BLUE, (BIRD_X, int(BIRD_Y)), BIRD_RADIUS)
+    pygame.draw.circle(screen, BLUE, (BIRD_X, int(bird_y)), BIRD_RADIUS)
 
     if check_collision():
-        running = False  # End game if collision happens
+        print("Game Over: You hit a pipe!")
+        running = False
 
-    # Display score
     font = pygame.font.SysFont(None, 36)
     score_text = font.render(f"Score: {score}", True, BLACK)
     screen.blit(score_text, (10, 10))
@@ -84,5 +88,14 @@ while running:
     pygame.display.update()
     clock.tick(30)
     frame_count += 1
-    
+
+screen.fill(WHITE)
+font = pygame.font.SysFont(None, 48)
+game_over_text = font.render("Game Over", True, BLACK)
+score_text = font.render(f"Final Score: {score}", True, BLACK)
+screen.blit(game_over_text, (WIDTH//2 - 100, HEIGHT//2 - 50))
+screen.blit(score_text, (WIDTH//2 - 100, HEIGHT//2))
+pygame.display.update()
+pygame.time.delay(2000)
+
 pygame.quit()
